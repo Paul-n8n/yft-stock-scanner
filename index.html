@@ -338,6 +338,16 @@
   </div>
 </div>
 
+<div class="edit-overlay" id="confirmOverlay">
+  <div class="edit-box">
+    <h3 id="confirmText"></h3>
+    <div class="buttons">
+      <button class="cancel" id="confirmNo">Cancel</button>
+      <button class="save" id="confirmYes" style="background:#e53935">Remove</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
@@ -475,11 +485,31 @@ document.getElementById('list').addEventListener('click', e => {
     else tally.set(code, q);
     render();
   } else if (act === 'del') {
-    if (confirm('Remove ' + code + '?')) { tally.delete(code); render(); }
+    askConfirm('Remove ' + code + '?', 'Remove', () => { tally.delete(code); render(); });
   } else if (act === 'edit') {
     openEditor(code);
   }
 });
+
+// ── In-page confirm (native confirm() pauses the iOS camera) ──
+let confirmAction = null;
+function askConfirm(text, yesLabel, onYes) {
+  confirmAction = onYes;
+  document.getElementById('confirmText').textContent = text;
+  document.getElementById('confirmYes').textContent = yesLabel;
+  document.getElementById('confirmOverlay').classList.add('show');
+}
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('show');
+  confirmAction = null;
+  resumeCamera();
+}
+document.getElementById('confirmNo').onclick = closeConfirm;
+document.getElementById('confirmYes').onclick = () => {
+  const fn = confirmAction;
+  closeConfirm();
+  if (fn) fn();
+};
 
 // ── Editor ──
 let editingCode = null;
@@ -490,14 +520,19 @@ function openEditor(code) {
   document.getElementById('editOverlay').classList.add('show');
   setTimeout(() => document.getElementById('editInput').focus(), 100);
 }
-document.getElementById('editCancel').onclick = () => document.getElementById('editOverlay').classList.remove('show');
+function closeEditor() {
+  document.getElementById('editInput').blur();
+  document.getElementById('editOverlay').classList.remove('show');
+  resumeCamera();
+}
+document.getElementById('editCancel').onclick = closeEditor;
 document.getElementById('editSave').onclick = () => {
   const v = parseInt(document.getElementById('editInput').value, 10);
   if (isNaN(v) || v < 0) return;
   if (v === 0) tally.delete(editingCode);
   else tally.set(editingCode, v);
   render();
-  document.getElementById('editOverlay').classList.remove('show');
+  closeEditor();
 };
 
 // ── Manual entry fallback ──
@@ -517,7 +552,7 @@ document.getElementById('manualCode').addEventListener('keypress', e => {
 // ── Clear / Submit ──
 document.getElementById('clearBtn').onclick = () => {
   if (tally.size === 0) return;
-  if (confirm('Clear all ' + tally.size + ' items?')) { tally.clear(); render(); }
+  askConfirm('Clear all ' + tally.size + ' items?', 'Clear all', () => { tally.clear(); render(); });
 };
 document.getElementById('submitBtn').onclick = () => {
   if (tally.size === 0) return;
@@ -618,16 +653,63 @@ async function startScanner() {
   }
 }
 
+let restarting = false;
+let lastFrameTime = -1;
+let stalledSince = 0;
 async function restartScanner() {
-  if (html5QrCode) {
-    try { await html5QrCode.stop(); } catch (e) {}
-    try { html5QrCode.clear(); } catch (e) {}
+  if (restarting) return;
+  restarting = true;
+  try {
+    if (html5QrCode) {
+      try { await html5QrCode.stop(); } catch (e) {}
+      try { html5QrCode.clear(); } catch (e) {}
+    }
+    html5QrCode = null;
+    await startScanner();
+  } finally {
+    restarting = false;
+    lastFrameTime = -1;
+    stalledSince = 0;
   }
-  html5QrCode = null;
-  startScanner();
 }
 
 document.getElementById('restartBtn').onclick = restartScanner;
+
+// ── Camera watchdog: iOS pauses/freezes the stream after dialogs, keyboard or app switch ──
+async function resumeCamera() {
+  if (restarting) return;
+  const v = document.querySelector('#reader video');
+  if (!v) return;
+  const track = v.srcObject && v.srcObject.getVideoTracks ? v.srcObject.getVideoTracks()[0] : null;
+  if (!track || track.readyState === 'ended') { restartScanner(); return; }
+  if (v.paused) {
+    try { await v.play(); } catch (e) { restartScanner(); }
+  }
+}
+
+setInterval(() => {
+  if (restarting || document.hidden) return;
+  const v = document.querySelector('#reader video');
+  if (!v) return;
+  if (v.paused) { resumeCamera(); return; }
+  if (v.readyState < 2 || v.currentTime === 0) return; // still starting up
+  // Frozen frame: currentTime stops advancing while "playing"
+  if (v.currentTime === lastFrameTime) {
+    if (!stalledSince) stalledSince = Date.now();
+    else if (Date.now() - stalledSince > 2500) {
+      setStatus('Camera froze — restarting...', 'error');
+      restartScanner();
+    }
+  } else {
+    stalledSince = 0;
+  }
+  lastFrameTime = v.currentTime;
+}, 1000);
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) setTimeout(resumeCamera, 300);
+});
+if (tg?.onEvent) tg.onEvent('activated', () => setTimeout(resumeCamera, 300));
 
 // ── AI Snap: capture frame → n8n webhook → GPT-4o reads barcodes ──
 const VISION_URL = 'https://youngfishingtackle.app.n8n.cloud/webhook/scanner-vision';
@@ -646,6 +728,11 @@ function captureFrame() {
 
 document.getElementById('snapBtn').onclick = async () => {
   initAudio();
+  const vid = document.querySelector('#reader video');
+  if (vid && vid.paused) {
+    await resumeCamera();
+    await new Promise(r => setTimeout(r, 400));
+  }
   const btn = document.getElementById('snapBtn');
   const img = captureFrame();
   if (!img) { showToast('Camera not ready', 'warn'); return; }
