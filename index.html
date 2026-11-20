@@ -18,7 +18,7 @@
     overflow-x: hidden;
   }
   header {
-    padding: 12px 16px;
+    padding: 10px 14px;
     background: var(--tg-theme-secondary-bg-color, #f0f0f0);
     display: flex;
     justify-content: space-between;
@@ -27,51 +27,97 @@
     top: 0;
     z-index: 10;
   }
-  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
-  header .counts { font-size: 13px; color: var(--tg-theme-hint-color, #666); }
+  header h1 { font-size: 15px; margin: 0; font-weight: 600; }
+  header .counts { font-size: 12px; color: var(--tg-theme-hint-color, #666); }
+
+  #status-bar {
+    background: #1565c0;
+    color: white;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-family: monospace;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #status-bar.error { background: #c62828; }
+  #status-bar.success { background: #2e7d32; }
+  #status-bar button {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    padding: 2px 8px;
+    font-size: 11px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
   #scanner-wrap {
     position: relative;
     background: #000;
-    aspect-ratio: 1 / 1;
-    max-height: 45vh;
     width: 100%;
+    min-height: 300px;
+    aspect-ratio: 1 / 1;
+    max-height: 50vh;
   }
   #reader { width: 100% !important; height: 100% !important; }
   #reader video { object-fit: cover !important; width: 100% !important; height: 100% !important; }
+  #reader > div { border: none !important; }
   .scan-overlay {
     position: absolute;
     top: 50%; left: 50%;
     transform: translate(-50%, -50%);
-    width: 70%; height: 30%;
+    width: 85%; height: 25%;
     border: 2px solid rgba(255,255,255,0.7);
     border-radius: 12px;
     pointer-events: none;
-    box-shadow: 0 0 0 9999px rgba(0,0,0,0.3);
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.25);
   }
   .toast {
     position: absolute;
     top: 12px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0,0,0,0.75);
+    background: rgba(0,0,0,0.8);
     color: #fff;
-    padding: 6px 14px;
+    padding: 8px 16px;
     border-radius: 16px;
     font-size: 13px;
     opacity: 0;
     transition: opacity 0.2s;
     pointer-events: none;
-    white-space: nowrap;
     max-width: 90%;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    text-align: center;
   }
   .toast.show { opacity: 1; }
-  .toast.success { background: rgba(34, 139, 34, 0.9); }
-  .toast.dup { background: rgba(0, 100, 200, 0.9); }
-  #list-section {
-    padding: 8px 12px 100px;
+  .toast.success { background: rgba(34, 139, 34, 0.95); }
+  .toast.dup { background: rgba(0, 100, 200, 0.95); }
+
+  #manual-entry {
+    padding: 10px 12px;
+    display: flex;
+    gap: 6px;
+    background: var(--tg-theme-secondary-bg-color, #f5f5f5);
   }
+  #manual-entry input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid rgba(0,0,0,0.15);
+    border-radius: 8px;
+    font-family: monospace;
+    font-size: 14px;
+  }
+  #manual-entry button {
+    padding: 10px 14px;
+    background: var(--tg-theme-button-color, #2481cc);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  #list-section { padding: 6px 12px 100px; }
   .list-header {
     display: flex;
     justify-content: space-between;
@@ -81,9 +127,10 @@
   }
   .empty-state {
     text-align: center;
-    padding: 40px 20px;
+    padding: 24px 20px;
     color: var(--tg-theme-hint-color, #999);
-    font-size: 14px;
+    font-size: 13px;
+    line-height: 1.5;
   }
   .row {
     display: flex;
@@ -92,149 +139,124 @@
     margin-bottom: 6px;
     padding: 10px 12px;
     border-radius: 8px;
-    gap: 10px;
+    gap: 8px;
     animation: slideIn 0.2s ease-out;
   }
   @keyframes slideIn {
     from { opacity: 0; transform: translateY(-5px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  .row.just-updated {
-    animation: flash 0.4s;
-  }
+  .row.just-updated { animation: flash 0.4s; }
   @keyframes flash {
     0% { background: #ffeb3b; }
     100% { background: var(--tg-theme-secondary-bg-color, #f5f5f5); }
   }
   .row .code {
     flex: 1;
-    font-family: 'SF Mono', Consolas, monospace;
-    font-size: 13px;
+    font-family: monospace;
+    font-size: 12px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .row .qty-controls {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
+  .row .qty-controls { display: flex; align-items: center; gap: 6px; }
   .row .qty-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 16px;
-    border: none;
-    background: var(--tg-theme-button-color, #2481cc);
-    color: var(--tg-theme-button-text-color, #fff);
-    font-size: 18px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
+    width: 30px; height: 30px; border-radius: 15px;
+    border: none; background: var(--tg-theme-button-color, #2481cc);
+    color: white; font-size: 18px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
   }
   .row .qty-btn.minus { background: #888; }
   .row .qty {
-    min-width: 32px;
-    text-align: center;
-    font-weight: 600;
-    font-size: 15px;
+    min-width: 30px; text-align: center;
+    font-weight: 600; font-size: 15px;
   }
   .row .del {
-    background: none;
-    border: none;
-    color: #e53935;
-    padding: 4px 8px;
-    font-size: 18px;
-    cursor: pointer;
+    background: none; border: none; color: #e53935;
+    padding: 4px 6px; font-size: 18px;
   }
+
   #bottom-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    position: fixed; bottom: 0; left: 0; right: 0;
     background: var(--tg-theme-bg-color, #fff);
     border-top: 1px solid rgba(0,0,0,0.1);
     padding: 10px 12px;
-    display: flex;
-    gap: 8px;
+    display: flex; gap: 8px;
   }
   #submitBtn {
-    flex: 1;
-    padding: 14px;
+    flex: 1; padding: 14px;
     background: var(--tg-theme-button-color, #2481cc);
-    color: var(--tg-theme-button-text-color, #fff);
-    border: none;
-    border-radius: 8px;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
+    color: white; border: none; border-radius: 8px;
+    font-size: 15px; font-weight: 600;
   }
   #submitBtn:disabled { opacity: 0.5; }
   #clearBtn {
-    padding: 14px 18px;
+    padding: 14px 16px;
     background: var(--tg-theme-secondary-bg-color, #ddd);
     color: var(--tg-theme-text-color, #000);
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    cursor: pointer;
+    border: none; border-radius: 8px; font-size: 14px;
   }
+
   .edit-overlay {
-    position: fixed;
-    inset: 0;
+    position: fixed; inset: 0;
     background: rgba(0,0,0,0.5);
-    display: none;
-    align-items: center;
-    justify-content: center;
+    display: none; align-items: center; justify-content: center;
     z-index: 100;
   }
   .edit-overlay.show { display: flex; }
   .edit-box {
     background: var(--tg-theme-bg-color, #fff);
-    padding: 20px;
-    border-radius: 12px;
-    width: 85%;
-    max-width: 320px;
+    padding: 20px; border-radius: 12px;
+    width: 85%; max-width: 320px;
   }
-  .edit-box h3 {
-    margin: 0 0 12px;
-    font-size: 14px;
-  }
+  .edit-box h3 { margin: 0 0 12px; font-size: 14px; }
   .edit-box .edit-code {
-    font-family: monospace;
-    font-size: 13px;
+    font-family: monospace; font-size: 13px;
     color: var(--tg-theme-hint-color, #666);
-    margin-bottom: 12px;
-    word-break: break-all;
+    margin-bottom: 12px; word-break: break-all;
   }
   .edit-box input {
-    width: 100%;
-    padding: 12px;
-    font-size: 16px;
-    border: 1px solid rgba(0,0,0,0.2);
-    border-radius: 8px;
+    width: 100%; padding: 12px; font-size: 16px;
+    border: 1px solid rgba(0,0,0,0.2); border-radius: 8px;
     text-align: center;
   }
   .edit-box .buttons {
-    display: flex;
-    gap: 8px;
-    margin-top: 12px;
+    display: flex; gap: 8px; margin-top: 12px;
   }
   .edit-box button {
-    flex: 1;
-    padding: 12px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    cursor: pointer;
+    flex: 1; padding: 12px; border: none;
+    border-radius: 8px; font-size: 14px;
   }
   .edit-box .save {
     background: var(--tg-theme-button-color, #2481cc);
-    color: var(--tg-theme-button-text-color, #fff);
+    color: white;
   }
   .edit-box .cancel {
     background: var(--tg-theme-secondary-bg-color, #ddd);
+  }
+
+  #camera-controls {
+    padding: 8px 12px;
+    background: var(--tg-theme-secondary-bg-color, #f5f5f5);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 12px;
+  }
+  #camera-select {
+    flex: 1;
+    padding: 6px;
+    font-size: 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(0,0,0,0.15);
+  }
+  #camera-controls button {
+    padding: 6px 10px;
+    border: none;
+    background: var(--tg-theme-button-color, #2481cc);
+    color: white;
+    border-radius: 6px;
+    font-size: 12px;
   }
 </style>
 </head>
@@ -245,10 +267,25 @@
   <span class="counts" id="counts">0 scans · 0 unique</span>
 </header>
 
+<div id="status-bar">
+  <span id="statusText">Starting...</span>
+  <button onclick="document.getElementById('status-bar').style.display='none'">hide</button>
+</div>
+
 <div id="scanner-wrap">
   <div id="reader"></div>
   <div class="scan-overlay"></div>
   <div class="toast" id="toast"></div>
+</div>
+
+<div id="camera-controls">
+  <select id="camera-select"><option>Loading cameras...</option></select>
+  <button id="restartBtn">Restart</button>
+</div>
+
+<div id="manual-entry">
+  <input id="manualCode" placeholder="Or type barcode manually" inputmode="numeric">
+  <button id="manualAdd">Add</button>
 </div>
 
 <div id="list-section">
@@ -258,8 +295,8 @@
   </div>
   <div id="list"></div>
   <div class="empty-state" id="emptyState">
-    Point the camera at a barcode to start.<br>
-    Scan the same code again to add qty.
+    Hold camera steady over a barcode.<br>
+    Same code scanned again = +1 qty.
   </div>
 </div>
 
@@ -281,212 +318,304 @@
 </div>
 
 <script>
-  const tg = window.Telegram?.WebApp;
-  if (tg) {
-    tg.ready();
-    tg.expand();
-  }
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
 
-  // ── Running tally: Map<code, qty> ──
-  const tally = new Map();
-  let lastScan = { code: null, at: 0 };
+// ── Status bar helpers ──
+function setStatus(text, kind) {
+  const bar = document.getElementById('status-bar');
+  bar.style.display = 'flex';
+  bar.className = kind || '';
+  document.getElementById('statusText').textContent = text;
+  console.log('[STATUS]', text);
+}
 
-  function updateCounts() {
-    const uniq = tally.size;
-    let total = 0;
-    tally.forEach(v => total += v);
-    document.getElementById('counts').textContent = total + ' scan' + (total !== 1 ? 's' : '') + ' · ' + uniq + ' unique';
-    document.getElementById('submitBtn').disabled = uniq === 0;
-    document.getElementById('submitBtn').textContent = uniq === 0
-      ? 'Submit'
-      : 'Submit ' + uniq + ' item' + (uniq !== 1 ? 's' : '');
-    document.getElementById('emptyState').style.display = uniq === 0 ? 'block' : 'none';
-    document.getElementById('totalBadge').textContent = uniq ? total + ' total' : '';
-  }
+// Catch any script errors so user can see them
+window.addEventListener('error', e => {
+  setStatus('JS error: ' + (e.message || e.error), 'error');
+});
 
-  function render() {
-    const list = document.getElementById('list');
-    list.innerHTML = '';
-    // Show most-recent at top
-    const codes = [...tally.keys()].reverse();
-    for (const code of codes) {
-      const qty = tally.get(code);
-      const row = document.createElement('div');
-      row.className = 'row';
-      row.dataset.code = code;
-      row.innerHTML =
-        '<span class="code">' + code + '</span>' +
-        '<div class="qty-controls">' +
-          '<button class="qty-btn minus" data-act="minus">−</button>' +
-          '<span class="qty" data-act="edit">' + qty + '</span>' +
-          '<button class="qty-btn plus" data-act="plus">+</button>' +
-        '</div>' +
-        '<button class="del" data-act="del">×</button>';
-      list.appendChild(row);
-    }
-    updateCounts();
-  }
+// Check library loaded
+if (typeof Html5Qrcode === 'undefined') {
+  setStatus('Scanner library failed to load. Check internet.', 'error');
+}
 
-  function flashRow(code) {
-    const row = document.querySelector('.row[data-code="' + code + '"]');
-    if (row) {
-      row.classList.remove('just-updated');
-      void row.offsetWidth;
-      row.classList.add('just-updated');
-    }
-  }
+// ── Running tally ──
+const tally = new Map();
+let lastScan = { code: null, at: 0 };
 
-  // ── Feedback: toast + vibrate + beep ──
-  const AC = typeof AudioContext !== 'undefined' ? AudioContext :
-             typeof webkitAudioContext !== 'undefined' ? webkitAudioContext : null;
-  const audioCtx = AC ? new AC() : null;
-  function beep(freq, dur) {
-    if (!audioCtx) return;
-    try {
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.frequency.value = freq;
-      o.connect(g);
-      g.connect(audioCtx.destination);
-      g.gain.setValueAtTime(0.2, audioCtx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
-      o.start();
-      o.stop(audioCtx.currentTime + dur);
-    } catch (e) {}
-  }
-  function showToast(text, kind) {
-    const t = document.getElementById('toast');
-    t.textContent = text;
-    t.className = 'toast show ' + (kind || '');
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => { t.className = 'toast'; }, 1200);
-  }
-  function feedback(isNew, code) {
-    if (navigator.vibrate) navigator.vibrate(isNew ? 50 : [30, 30, 30]);
-    beep(isNew ? 880 : 1200, 0.12);
-    const q = tally.get(code);
-    showToast(code + (isNew ? '  (new)' : '  ×' + q), isNew ? 'success' : 'dup');
-    if (tg?.HapticFeedback) {
-      tg.HapticFeedback.notificationOccurred(isNew ? 'success' : 'warning');
-    }
-  }
+function updateCounts() {
+  const uniq = tally.size;
+  let total = 0;
+  tally.forEach(v => total += v);
+  document.getElementById('counts').textContent = total + ' scan' + (total !== 1 ? 's' : '') + ' · ' + uniq + ' unique';
+  document.getElementById('submitBtn').disabled = uniq === 0;
+  document.getElementById('submitBtn').textContent = uniq === 0 ? 'Submit' : 'Submit ' + uniq + ' item' + (uniq !== 1 ? 's' : '');
+  document.getElementById('emptyState').style.display = uniq === 0 ? 'block' : 'none';
+  document.getElementById('totalBadge').textContent = uniq ? total + ' total' : '';
+}
 
-  function addScan(code) {
-    // Debounce: ignore same code within 800ms
-    const now = Date.now();
-    if (lastScan.code === code && now - lastScan.at < 800) return;
-    lastScan = { code, at: now };
+function render() {
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  const codes = [...tally.keys()].reverse();
+  for (const code of codes) {
+    const qty = tally.get(code);
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.dataset.code = code;
+    row.innerHTML =
+      '<span class="code">' + code + '</span>' +
+      '<div class="qty-controls">' +
+        '<button class="qty-btn minus" data-act="minus">−</button>' +
+        '<span class="qty" data-act="edit">' + qty + '</span>' +
+        '<button class="qty-btn plus" data-act="plus">+</button>' +
+      '</div>' +
+      '<button class="del" data-act="del">×</button>';
+    list.appendChild(row);
+  }
+  updateCounts();
+}
 
-    const isNew = !tally.has(code);
+function flashRow(code) {
+  const row = document.querySelector('.row[data-code="' + code + '"]');
+  if (row) {
+    row.classList.remove('just-updated');
+    void row.offsetWidth;
+    row.classList.add('just-updated');
+  }
+}
+
+// ── Feedback ──
+const AC = typeof AudioContext !== 'undefined' ? AudioContext :
+           typeof webkitAudioContext !== 'undefined' ? webkitAudioContext : null;
+let audioCtx = null;
+function initAudio() {
+  if (!audioCtx && AC) audioCtx = new AC();
+}
+function beep(freq, dur) {
+  if (!audioCtx) return;
+  try {
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.frequency.value = freq;
+    o.connect(g);
+    g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
+    o.start();
+    o.stop(audioCtx.currentTime + dur);
+  } catch (e) {}
+}
+function showToast(text, kind) {
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.className = 'toast show ' + (kind || '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.className = 'toast'; }, 1200);
+}
+function feedback(isNew, code) {
+  if (navigator.vibrate) navigator.vibrate(isNew ? 50 : [30, 30, 30]);
+  beep(isNew ? 880 : 1200, 0.12);
+  const q = tally.get(code);
+  showToast(code + (isNew ? '  (new)' : '  ×' + q), isNew ? 'success' : 'dup');
+  if (tg?.HapticFeedback) {
+    tg.HapticFeedback.notificationOccurred(isNew ? 'success' : 'warning');
+  }
+}
+
+function addScan(code) {
+  const now = Date.now();
+  if (lastScan.code === code && now - lastScan.at < 800) return;
+  lastScan = { code, at: now };
+
+  const isNew = !tally.has(code);
+  tally.set(code, (tally.get(code) || 0) + 1);
+  render();
+  flashRow(code);
+  feedback(isNew, code);
+  setStatus('Last scan: ' + code, 'success');
+}
+
+// ── List interactions ──
+document.getElementById('list').addEventListener('click', e => {
+  const row = e.target.closest('.row');
+  if (!row) return;
+  initAudio();
+  const code = row.dataset.code;
+  const act = e.target.dataset.act;
+  if (act === 'plus') {
     tally.set(code, (tally.get(code) || 0) + 1);
     render();
     flashRow(code);
-    feedback(isNew, code);
-  }
-
-  // ── List interactions (event delegation) ──
-  document.getElementById('list').addEventListener('click', e => {
-    const row = e.target.closest('.row');
-    if (!row) return;
-    const code = row.dataset.code;
-    const act = e.target.dataset.act;
-    if (act === 'plus') {
-      tally.set(code, (tally.get(code) || 0) + 1);
-      render();
-      flashRow(code);
-      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-    } else if (act === 'minus') {
-      const q = tally.get(code) - 1;
-      if (q <= 0) tally.delete(code);
-      else tally.set(code, q);
-      render();
-      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
-    } else if (act === 'del') {
-      if (confirm('Remove ' + code + '?')) {
-        tally.delete(code);
-        render();
-      }
-    } else if (act === 'edit') {
-      openEditor(code);
-    }
-  });
-
-  // ── Editor ──
-  let editingCode = null;
-  function openEditor(code) {
-    editingCode = code;
-    document.getElementById('editCode').textContent = code;
-    document.getElementById('editInput').value = tally.get(code);
-    document.getElementById('editOverlay').classList.add('show');
-    setTimeout(() => document.getElementById('editInput').focus(), 100);
-  }
-  document.getElementById('editCancel').onclick = () => {
-    document.getElementById('editOverlay').classList.remove('show');
-  };
-  document.getElementById('editSave').onclick = () => {
-    const v = parseInt(document.getElementById('editInput').value, 10);
-    if (isNaN(v) || v < 0) return;
-    if (v === 0) tally.delete(editingCode);
-    else tally.set(editingCode, v);
+  } else if (act === 'minus') {
+    const q = tally.get(code) - 1;
+    if (q <= 0) tally.delete(code);
+    else tally.set(code, q);
     render();
-    document.getElementById('editOverlay').classList.remove('show');
-  };
+  } else if (act === 'del') {
+    if (confirm('Remove ' + code + '?')) { tally.delete(code); render(); }
+  } else if (act === 'edit') {
+    openEditor(code);
+  }
+});
 
-  // ── Clear ──
-  document.getElementById('clearBtn').onclick = () => {
-    if (tally.size === 0) return;
-    if (confirm('Clear all ' + tally.size + ' scanned items?')) {
-      tally.clear();
-      render();
+// ── Editor ──
+let editingCode = null;
+function openEditor(code) {
+  editingCode = code;
+  document.getElementById('editCode').textContent = code;
+  document.getElementById('editInput').value = tally.get(code);
+  document.getElementById('editOverlay').classList.add('show');
+  setTimeout(() => document.getElementById('editInput').focus(), 100);
+}
+document.getElementById('editCancel').onclick = () => document.getElementById('editOverlay').classList.remove('show');
+document.getElementById('editSave').onclick = () => {
+  const v = parseInt(document.getElementById('editInput').value, 10);
+  if (isNaN(v) || v < 0) return;
+  if (v === 0) tally.delete(editingCode);
+  else tally.set(editingCode, v);
+  render();
+  document.getElementById('editOverlay').classList.remove('show');
+};
+
+// ── Manual entry fallback ──
+document.getElementById('manualAdd').onclick = () => {
+  const inp = document.getElementById('manualCode');
+  const code = inp.value.trim();
+  if (code) {
+    initAudio();
+    addScan(code);
+    inp.value = '';
+  }
+};
+document.getElementById('manualCode').addEventListener('keypress', e => {
+  if (e.key === 'Enter') document.getElementById('manualAdd').click();
+});
+
+// ── Clear / Submit ──
+document.getElementById('clearBtn').onclick = () => {
+  if (tally.size === 0) return;
+  if (confirm('Clear all ' + tally.size + ' items?')) { tally.clear(); render(); }
+};
+document.getElementById('submitBtn').onclick = () => {
+  if (tally.size === 0) return;
+  const scans = [...tally.entries()].map(([code, qty]) => ({ code, qty }));
+  const payload = { scans, scanned_at: new Date().toISOString() };
+  if (tg?.sendData) {
+    tg.sendData(JSON.stringify(payload));
+  } else {
+    alert('Not in Telegram. Payload:\n' + JSON.stringify(payload, null, 2));
+  }
+};
+
+// ── Scanner init with fallback + camera picker ──
+let html5QrCode = null;
+let currentCameraId = null;
+
+async function listCameras() {
+  try {
+    const cameras = await Html5Qrcode.getCameras();
+    const sel = document.getElementById('camera-select');
+    sel.innerHTML = '';
+    if (!cameras || cameras.length === 0) {
+      setStatus('No cameras found. Use manual entry.', 'error');
+      return null;
     }
-  };
-
-  // ── Submit ──
-  document.getElementById('submitBtn').onclick = () => {
-    if (tally.size === 0) return;
-    const scans = [...tally.entries()].map(([code, qty]) => ({ code, qty }));
-    const payload = { scans, scanned_at: new Date().toISOString() };
-    if (tg?.sendData) {
-      tg.sendData(JSON.stringify(payload));
-      // tg.close() is called by Telegram automatically after sendData
-    } else {
-      // Fallback for testing in browser
-      alert('Not in Telegram. Payload:\n' + JSON.stringify(payload, null, 2));
+    // Prefer back camera
+    let chosen = cameras.find(c => /back|rear|environment/i.test(c.label)) || cameras[cameras.length - 1];
+    for (const c of cameras) {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.label || ('Camera ' + c.id.slice(0, 6));
+      if (c.id === chosen.id) opt.selected = true;
+      sel.appendChild(opt);
     }
-  };
+    sel.onchange = () => { currentCameraId = sel.value; restartScanner(); };
+    return chosen.id;
+  } catch (e) {
+    setStatus('Camera list failed: ' + (e.message || e), 'error');
+    return null;
+  }
+}
 
-  // ── Scanner init ──
-  const html5QrCode = new Html5Qrcode('reader', { verbose: false });
-  const scanConfig = {
-    fps: 10,
-    qrbox: { width: 260, height: 100 },
+async function startScanner() {
+  if (typeof Html5Qrcode === 'undefined') {
+    setStatus('Library not loaded. Refresh.', 'error');
+    return;
+  }
+  setStatus('Requesting camera...');
+  html5QrCode = new Html5Qrcode('reader', { verbose: false });
+
+  if (!currentCameraId) currentCameraId = await listCameras();
+  if (!currentCameraId) { setStatus('No camera available', 'error'); return; }
+
+  const cfg = {
+    fps: 15,
+    qrbox: (w, h) => {
+      const edge = Math.min(w, h);
+      return { width: Math.floor(edge * 0.85), height: Math.floor(edge * 0.35) };
+    },
     aspectRatio: 1,
     formatsToSupport: [
       Html5QrcodeSupportedFormats.CODE_128,
       Html5QrcodeSupportedFormats.CODE_39,
+      Html5QrcodeSupportedFormats.CODE_93,
+      Html5QrcodeSupportedFormats.CODABAR,
       Html5QrcodeSupportedFormats.EAN_13,
       Html5QrcodeSupportedFormats.EAN_8,
       Html5QrcodeSupportedFormats.UPC_A,
       Html5QrcodeSupportedFormats.UPC_E,
+      Html5QrcodeSupportedFormats.UPC_EAN_EXTENSION,
       Html5QrcodeSupportedFormats.ITF,
-      Html5QrcodeSupportedFormats.QR_CODE
+      Html5QrcodeSupportedFormats.QR_CODE,
+      Html5QrcodeSupportedFormats.DATA_MATRIX
     ]
   };
 
-  function startScanner() {
-    html5QrCode.start(
-      { facingMode: 'environment' },
-      scanConfig,
-      (decoded) => addScan(String(decoded).trim()),
+  try {
+    await html5QrCode.start(
+      currentCameraId,
+      cfg,
+      (decoded) => { initAudio(); addScan(String(decoded).trim()); },
       () => { /* ignore per-frame errors */ }
-    ).catch(err => {
-      showToast('Camera error: ' + err, '');
-      console.error(err);
-    });
+    );
+    setStatus('Camera ready. Aim at a barcode.', 'success');
+    setTimeout(() => {
+      const bar = document.getElementById('status-bar');
+      if (bar.classList.contains('success')) bar.style.display = 'none';
+    }, 2500);
+  } catch (err) {
+    const msg = (err && err.message) || String(err);
+    if (/Permission|NotAllowed/i.test(msg)) {
+      setStatus('Camera blocked. Allow in settings, then Restart.', 'error');
+    } else if (/NotFound|Overconstrained/i.test(msg)) {
+      setStatus('No camera found. Use manual entry.', 'error');
+    } else if (/NotReadable|Starting/i.test(msg)) {
+      setStatus('Camera busy. Close other camera apps.', 'error');
+    } else {
+      setStatus('Camera error: ' + msg, 'error');
+    }
   }
-  startScanner();
+}
 
-  render();
+async function restartScanner() {
+  if (html5QrCode) {
+    try { await html5QrCode.stop(); } catch (e) {}
+    try { html5QrCode.clear(); } catch (e) {}
+  }
+  html5QrCode = null;
+  startScanner();
+}
+
+document.getElementById('restartBtn').onclick = restartScanner;
+
+// First user tap unlocks audio
+document.body.addEventListener('touchstart', initAudio, { once: true, passive: true });
+document.body.addEventListener('click', initAudio, { once: true });
+
+render();
+startScanner();
 </script>
 
 </body>
