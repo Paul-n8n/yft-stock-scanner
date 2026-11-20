@@ -552,11 +552,9 @@ async function startScanner() {
 
   const cfg = {
     fps: 15,
-    qrbox: (w, h) => {
-      const edge = Math.min(w, h);
-      return { width: Math.floor(edge * 0.85), height: Math.floor(edge * 0.35) };
-    },
+    // No qrbox = scan the ENTIRE camera view (more forgiving aim)
     aspectRatio: 1,
+    disableFlip: false,
     formatsToSupport: [
       Html5QrcodeSupportedFormats.CODE_128,
       Html5QrcodeSupportedFormats.CODE_39,
