@@ -92,6 +92,25 @@
   .toast.show { opacity: 1; }
   .toast.success { background: rgba(34, 139, 34, 0.95); }
   .toast.dup { background: rgba(0, 100, 200, 0.95); }
+  .toast.warn { background: rgba(200, 120, 0, 0.95); }
+
+  #snapBtn {
+    position: absolute;
+    bottom: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 5;
+    padding: 14px 28px;
+    border-radius: 30px;
+    border: 3px solid #fff;
+    background: #e65100;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  #snapBtn:disabled { background: #777; }
+  #snapBtn:active { transform: translateX(-50%) scale(0.95); }
 
   #manual-entry {
     padding: 10px 12px;
@@ -276,6 +295,7 @@
   <div id="reader"></div>
   <div class="scan-overlay"></div>
   <div class="toast" id="toast"></div>
+  <button id="snapBtn">📸 Snap</button>
 </div>
 
 <div id="camera-controls">
@@ -295,8 +315,9 @@
   </div>
   <div id="list"></div>
   <div class="empty-state" id="emptyState">
-    Hold camera steady over a barcode.<br>
-    Same code scanned again = +1 qty.
+    Aim at a barcode and tap <b>📸 Snap</b>.<br>
+    Each snap of the same code = +1 qty.<br>
+    Several barcodes in one photo are all added.
   </div>
 </div>
 
@@ -424,9 +445,9 @@ function feedback(isNew, code) {
   }
 }
 
-function addScan(code) {
+function addScan(code, skipDebounce) {
   const now = Date.now();
-  if (lastScan.code === code && now - lastScan.at < 800) return;
+  if (!skipDebounce && lastScan.code === code && now - lastScan.at < 800) return;
   lastScan = { code, at: now };
 
   const isNew = !tally.has(code);
@@ -607,6 +628,56 @@ async function restartScanner() {
 }
 
 document.getElementById('restartBtn').onclick = restartScanner;
+
+// ── AI Snap: capture frame → n8n webhook → GPT-4o reads barcodes ──
+const VISION_URL = 'https://youngfishingtackle.app.n8n.cloud/webhook/scanner-vision';
+
+function captureFrame() {
+  const video = document.querySelector('#reader video');
+  if (!video || !video.videoWidth) return null;
+  const maxW = 1280;
+  const scale = Math.min(1, maxW / video.videoWidth);
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(video.videoWidth * scale);
+  canvas.height = Math.round(video.videoHeight * scale);
+  canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+}
+
+document.getElementById('snapBtn').onclick = async () => {
+  initAudio();
+  const btn = document.getElementById('snapBtn');
+  const img = captureFrame();
+  if (!img) { showToast('Camera not ready', 'warn'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Reading...';
+  if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
+
+  try {
+    const res = await fetch(VISION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_base64: img })
+    });
+    const data = await res.json();
+    const codes = data.barcodes || [];
+    if (codes.length === 0) {
+      showToast('No barcode found — move closer', 'warn');
+      if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+      setStatus('Snap: no barcode read', 'error');
+    } else {
+      for (const c of codes) addScan(String(c).trim(), true);
+      if (codes.length > 1) showToast(codes.length + ' barcodes added', 'success');
+    }
+  } catch (e) {
+    showToast('Network error — try again', 'warn');
+    setStatus('Snap failed: ' + (e.message || e), 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📸 Snap';
+  }
+};
 
 // First user tap unlocks audio
 document.body.addEventListener('touchstart', initAudio, { once: true, passive: true });
