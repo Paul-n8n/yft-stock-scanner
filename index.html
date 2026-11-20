@@ -194,6 +194,32 @@
     background: none; border: none; color: #e53935;
     padding: 4px 6px; font-size: 18px;
   }
+  .row .code-wrap { flex: 1; min-width: 0; }
+  .row .code-wrap .code { display: block; }
+  .row .sub {
+    font-size: 11px;
+    color: var(--tg-theme-hint-color, #777);
+    margin-top: 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .row .sub.warn { color: #c62828; font-weight: 600; white-space: normal; }
+  .row.unknown {
+    background: #ffebee;
+    border: 2px solid #e53935;
+  }
+  .row .sugg {
+    display: block; width: 100%;
+    margin-top: 4px; padding: 6px 8px;
+    text-align: left;
+    background: #fff; border: 1px solid #e53935; border-radius: 6px;
+    font-family: monospace; font-size: 12px; color: #000;
+  }
+  .row .sugg span {
+    display: block;
+    font-family: -apple-system, sans-serif; font-size: 10px; color: #666;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #file-reader { display: none; }
 
   #bottom-bar {
     position: fixed; bottom: 0; left: 0; right: 0;
@@ -297,6 +323,7 @@
   <div class="toast" id="toast"></div>
   <button id="snapBtn">📸 Snap</button>
 </div>
+<div id="file-reader"></div>
 
 <div id="camera-controls">
   <select id="camera-select"><option>Loading cameras...</option></select>
@@ -373,7 +400,13 @@ if (typeof Html5Qrcode === 'undefined') {
 
 // ── Running tally ──
 const tally = new Map();
+// code -> { desc, unknown, suggestions:[{code,desc}] } from the inventory check
+const info = new Map();
 let lastScan = { code: null, at: 0 };
+
+function esc(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
 
 function updateCounts() {
   const uniq = tally.size;
@@ -392,11 +425,23 @@ function render() {
   const codes = [...tally.keys()].reverse();
   for (const code of codes) {
     const qty = tally.get(code);
+    const meta = info.get(code);
     const row = document.createElement('div');
-    row.className = 'row';
+    row.className = 'row' + (meta?.unknown ? ' unknown' : '');
     row.dataset.code = code;
+    let sub = '';
+    if (meta?.unknown) {
+      sub = '<div class="sub warn">Not in inventory — tap the right one:</div>';
+      for (const s of (meta.suggestions || [])) {
+        sub += '<button class="sugg" data-act="pick" data-pick="' + esc(s.code) + '">' +
+          esc(s.code) + '<span>' + esc(String(s.desc).slice(0, 40)) + '</span></button>';
+      }
+      if (!(meta.suggestions || []).length) sub += '<div class="sub">No close match. Check the label, or remove.</div>';
+    } else if (meta?.desc) {
+      sub = '<div class="sub">' + esc(String(meta.desc).slice(0, 48)) + '</div>';
+    }
     row.innerHTML =
-      '<span class="code">' + code + '</span>' +
+      '<div class="code-wrap"><span class="code">' + esc(code) + '</span>' + sub + '</div>' +
       '<div class="qty-controls">' +
         '<button class="qty-btn minus" data-act="minus">−</button>' +
         '<span class="qty" data-act="edit">' + qty + '</span>' +
@@ -474,7 +519,8 @@ document.getElementById('list').addEventListener('click', e => {
   if (!row) return;
   initAudio();
   const code = row.dataset.code;
-  const act = e.target.dataset.act;
+  const actEl = e.target.closest('[data-act]');
+  const act = actEl?.dataset.act;
   if (act === 'plus') {
     tally.set(code, (tally.get(code) || 0) + 1);
     render();
@@ -484,8 +530,19 @@ document.getElementById('list').addEventListener('click', e => {
     if (q <= 0) tally.delete(code);
     else tally.set(code, q);
     render();
+  } else if (act === 'pick') {
+    // Replace a flagged code with the suggestion the staff tapped, keeping its qty
+    const pick = actEl.dataset.pick;
+    const picked = (info.get(code)?.suggestions || []).find(s => s.code === pick);
+    const qty = tally.get(code) || 1;
+    tally.delete(code);
+    info.delete(code);
+    tally.set(pick, (tally.get(pick) || 0) + qty);
+    info.set(pick, { desc: picked?.desc || '' });
+    render();
+    flashRow(pick);
   } else if (act === 'del') {
-    askConfirm('Remove ' + code + '?', 'Remove', () => { tally.delete(code); render(); });
+    askConfirm('Remove ' + code + '?', 'Remove', () => { tally.delete(code); info.delete(code); render(); });
   } else if (act === 'edit') {
     openEditor(code);
   }
@@ -552,10 +609,18 @@ document.getElementById('manualCode').addEventListener('keypress', e => {
 // ── Clear / Submit ──
 document.getElementById('clearBtn').onclick = () => {
   if (tally.size === 0) return;
-  askConfirm('Clear all ' + tally.size + ' items?', 'Clear all', () => { tally.clear(); render(); });
+  askConfirm('Clear all ' + tally.size + ' items?', 'Clear all', () => { tally.clear(); info.clear(); render(); });
 };
 document.getElementById('submitBtn').onclick = () => {
   if (tally.size === 0) return;
+  const flagged = [...tally.keys()].filter(c => info.get(c)?.unknown).length;
+  if (flagged > 0) {
+    askConfirm(flagged + ' red code' + (flagged > 1 ? 's are' : ' is') + ' not in inventory. Submit anyway?', 'Submit anyway', doSubmit);
+    return;
+  }
+  doSubmit();
+};
+function doSubmit() {
   const scans = [...tally.entries()].map(([code, qty]) => ({ code, qty }));
   const payload = { scans, scanned_at: new Date().toISOString() };
   if (tg?.sendData) {
@@ -714,16 +779,58 @@ if (tg?.onEvent) tg.onEvent('activated', () => setTimeout(resumeCamera, 300));
 // ── AI Snap: capture frame → n8n webhook → GPT-4o reads barcodes ──
 const VISION_URL = 'https://youngfishingtackle.app.n8n.cloud/webhook/scanner-vision';
 
-function captureFrame() {
-  const video = document.querySelector('#reader video');
-  if (!video || !video.videoWidth) return null;
-  const maxW = 1280;
-  const scale = Math.min(1, maxW / video.videoWidth);
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.round(video.videoWidth * scale);
-  canvas.height = Math.round(video.videoHeight * scale);
-  canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-  return canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+// Part of the video actually visible on screen (object-fit: cover), in video pixels
+function visibleRegion(video) {
+  const wrap = document.getElementById('scanner-wrap');
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  const vw = video.videoWidth, vh = video.videoHeight;
+  const s = Math.max(W / vw, H / vh);
+  const sw = W / s, sh = H / s;
+  return { sx: (vw - sw) / 2, sy: (vh - sh) / 2, sw, sh };
+}
+
+// Full-resolution crop around the scan box (box is the middle band of the view)
+function captureBand(video) {
+  const v = visibleRegion(video);
+  const bw = v.sw * 0.98, bh = v.sh * 0.5;
+  const bx = v.sx + (v.sw - bw) / 2, by = v.sy + (v.sh - bh) / 2;
+  const k = Math.min(1, 1600 / bw);
+  const c = document.createElement('canvas');
+  c.width = Math.round(bw * k);
+  c.height = Math.round(bh * k);
+  c.getContext('2d').drawImage(video, bx, by, bw, bh, 0, 0, c.width, c.height);
+  return c;
+}
+
+function captureVisible(video) {
+  const v = visibleRegion(video);
+  const k = Math.min(1, 1600 / v.sw);
+  const c = document.createElement('canvas');
+  c.width = Math.round(v.sw * k);
+  c.height = Math.round(v.sh * k);
+  c.getContext('2d').drawImage(video, v.sx, v.sy, v.sw, v.sh, 0, 0, c.width, c.height);
+  return c;
+}
+
+// Decode the actual bars on a sharp still photo (exact, has a check digit)
+let fileScanner = null;
+async function decodeStill(canvas) {
+  if (typeof Html5Qrcode === 'undefined') return null;
+  try {
+    if (!fileScanner) {
+      const F = Html5QrcodeSupportedFormats;
+      fileScanner = new Html5Qrcode('file-reader', {
+        verbose: false,
+        formatsToSupport: [F.CODE_128, F.CODE_39, F.CODE_93, F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E, F.ITF, F.CODABAR]
+      });
+    }
+    const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.95));
+    const file = new File([blob], 'snap.jpg', { type: 'image/jpeg' });
+    const r = await fileScanner.scanFileV2(file, false);
+    return r && r.decodedText ? String(r.decodedText).trim() : null;
+  } catch (e) {
+    return null;
+  }
 }
 
 document.getElementById('snapBtn').onclick = async () => {
@@ -734,32 +841,58 @@ document.getElementById('snapBtn').onclick = async () => {
     await new Promise(r => setTimeout(r, 400));
   }
   const btn = document.getElementById('snapBtn');
-  const img = captureFrame();
-  if (!img) { showToast('Camera not ready', 'warn'); return; }
+  const video = document.querySelector('#reader video');
+  if (!video || !video.videoWidth) { showToast('Camera not ready', 'warn'); return; }
 
   btn.disabled = true;
   btn.textContent = '⏳ Reading...';
   if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('medium');
 
+  // Grab both frames immediately so the shot isn't blurred by moving
+  const band = captureBand(video);
+  const visible = captureVisible(video);
+  let decoded = null;
+
   try {
+    decoded = await decodeStill(band) || await decodeStill(visible);
+    const img = band.toDataURL('image/jpeg', 0.92).split(',')[1];
+
     const res = await fetch(VISION_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image_base64: img })
+      body: JSON.stringify({ image_base64: img, decoded: decoded ? [decoded] : [] })
     });
     const data = await res.json();
-    const codes = data.barcodes || [];
-    if (codes.length === 0) {
+    const items = data.items || (data.barcodes || []).map(c => ({ code: c, status: 'ok' }));
+
+    if (items.length === 0) {
       showToast('No barcode found — move closer', 'warn');
       if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
       setStatus('Snap: no barcode read', 'error');
     } else {
-      for (const c of codes) addScan(String(c).trim(), true);
-      if (codes.length > 1) showToast(codes.length + ' barcodes added', 'success');
+      for (const it of items) {
+        const code = String(it.code).trim();
+        info.set(code, { desc: it.desc || '', unknown: it.status === 'unknown', suggestions: it.suggestions || [] });
+        addScan(code, true);
+      }
+      const unknown = items.filter(i => i.status === 'unknown').length;
+      const fixed = items.filter(i => i.status === 'corrected');
+      if (unknown) {
+        showToast('Not in inventory — check the red row', 'warn');
+        if (navigator.vibrate) navigator.vibrate([80, 40, 80]);
+      } else if (fixed.length) {
+        showToast('Fixed misread → ' + fixed[0].code, 'success');
+      } else if (items.length > 1) {
+        showToast(items.length + ' barcodes added', 'success');
+      }
     }
   } catch (e) {
-    showToast('Network error — try again', 'warn');
-    setStatus('Snap failed: ' + (e.message || e), 'error');
+    if (decoded) {
+      addScan(decoded, true);   // offline fallback: the decoded bars are still exact
+    } else {
+      showToast('Network error — try again', 'warn');
+      setStatus('Snap failed: ' + (e.message || e), 'error');
+    }
   } finally {
     btn.disabled = false;
     btn.textContent = '📸 Snap';
